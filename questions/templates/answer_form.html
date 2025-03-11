@@ -1,0 +1,81 @@
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Answer Form</title>
+    {% load static %}
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="{% static 'questions/css/styles.css' %}" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="form-container">
+            <!-- Progress indicator -->
+            <div class="progress mb-4">
+                {% with progress_value=current_question_number|stringformat:"i" %}
+                <div class="progress-bar progress-bar-custom" role="progressbar" data-progress="{% widthratio current_question_number total_questions 100 %}" aria-valuenow="{{ progress_value }}" aria-valuemin="0" aria-valuemax="{{ total_questions }}">Soru {{ current_question_number }}/{{ total_questions }}</div>
+                {% endwith %}
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+                
+                {% if not request.session.session_key %}
+                    <div class="form-group">
+                        <label for="{{ form.nickname.id_for_label }}" class="form-label">{{ form.nickname.label }}</label>
+                        {{ form.nickname }}
+                        {% if form.nickname.errors %}
+                            {% for error in form.nickname.errors %}
+                                <div class="error">{{ error }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ form.contact_info.id_for_label }}" class="form-label">{{ form.contact_info.label }}</label>
+                        {{ form.contact_info }}
+                        {% if form.contact_info.errors %}
+                            {% for error in form.contact_info.errors %}
+                                <div class="error">{{ error }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                {% endif %}
+
+                <div class="form-group">
+                    <div class="question-text">{{ question.text }}</div>
+                    {% for field in form %}
+                        {% if field.name != 'nickname' and field.name != 'contact_info' %}
+                            <div class="answer-field">
+                                {% if question.q_type == 'open_ended' %}
+                                    {{ field }}
+                                {% elif question.q_type == 'multiple_choice_single' %}
+                                    <div class="radio-group">
+                                        {{ field }}
+                                    </div>
+                                {% elif question.q_type == 'multiple_choice_multiple' %}
+                                    <div class="checkbox-group">
+                                        {{ field }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            {% if field.errors %}
+                                {% for error in field.errors %}
+                                    <div class="error">{{ error }}</div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+                </div>
+
+                <button type="submit" class="btn btn-primary">İleri</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JavaScript -->
+    <script src="{% static 'questions/js/form.js' %}"></script>
+</body>

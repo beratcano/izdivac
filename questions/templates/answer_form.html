@@ -3,61 +3,86 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Answer Form</title>
     {% load static %}
+{% load question_filters %}
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Custom CSS -->
     <link href="{% static 'questions/css/styles.css' %}" rel="stylesheet">
 </head>
 <body>
+    <div class="theme-switcher">
+        <label class="switch">
+            <input type="checkbox" id="theme-toggle">
+            <span class="slider round"></span>
+        </label>
+    </div>
     <div class="container">
         <div class="form-container">
             <!-- Progress indicator -->
             <div class="progress mb-4">
                 {% with progress_value=current_question_number|stringformat:"i" %}
-                <div class="progress-bar progress-bar-custom" role="progressbar" data-progress="{% widthratio current_question_number total_questions 100 %}" aria-valuenow="{{ progress_value }}" aria-valuemin="0" aria-valuemax="{{ total_questions }}">Soru {{ current_question_number }}/{{ total_questions }}</div>
+                <div class="progress-bar progress-bar-custom" role="progressbar" style="width: {% widthratio current_question_number total_questions 100 %}%;" aria-valuenow="{{ progress_value }}" aria-valuemin="0" aria-valuemax="{{ total_questions }}"></div>
+                <span class="progress-text-overlay">Soru {{ current_question_number }}/{{ total_questions }}</span>
                 {% endwith %}
             </div>
 
             <form method="post">
                 {% csrf_token %}
-                
-                {% if not request.session.session_key %}
-                    <div class="form-group">
-                        <label for="{{ form.nickname.id_for_label }}" class="form-label">{{ form.nickname.label }}</label>
-                        {{ form.nickname }}
-                        {% if form.nickname.errors %}
-                            {% for error in form.nickname.errors %}
-                                <div class="error">{{ error }}</div>
-                            {% endfor %}
-                        {% endif %}
-                    </div>
-
-                    <div class="form-group">
-                        <label for="{{ form.contact_info.id_for_label }}" class="form-label">{{ form.contact_info.label }}</label>
-                        {{ form.contact_info }}
-                        {% if form.contact_info.errors %}
-                            {% for error in form.contact_info.errors %}
-                                <div class="error">{{ error }}</div>
-                            {% endfor %}
-                        {% endif %}
-                    </div>
-                {% endif %}
 
                 <div class="form-group">
                     <div class="question-text">{{ question.text }}</div>
+
+                    {% if is_16_personalities %}
+                        <p class="text-muted">Kişilik tipinizi bilmiyorsanız, testi <a href="https://www.16personalities.com/" target="_blank">buradan</a> yapabilirsiniz.</p>
+                    {% endif %}
+
                     {% for field in form %}
                         {% if field.name != 'nickname' and field.name != 'contact_info' %}
                             <div class="answer-field">
-                                {% if question.q_type == 'open_ended' %}
+                                {% if question.q_type == 'slider' %}
+                                    {% if field.name == expected_field_name %}
+                                        <div class="slider-wrapper">
+                                            {{ field }}
+                                            <div class="slider-ticks" data-min="{{ question.min_value }}" data-max="{{ question.max_value }}">
+                                                {% for i in question.max_value|get_range %}
+                                                <span class="tick"></span>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        <span id="slider_value_{{ question.q_id }}" class="slider-value">{{ field.value|default:question.min_value }}</span>
+                                    {% endif %}
+                                {% elif question.q_type == 'open_ended' or question.q_type == 'datetime' %}
                                     {{ field }}
-                                {% elif question.q_type == 'multiple_choice_single' %}
-                                    <div class="radio-group">
-                                        {{ field }}
+                                {% elif is_16_personalities %}
+                                    <div class="personality-table-container">
+                                        <table>
+                                            {% for choice_id, choice_text in form.question_41.field.choices %}
+                                                {% if forloop.counter0|divisibleby:4 %}<tr>{% endif %}
+                                                <td>
+                                                    <input type="radio" name="{{ form.question_41.html_name }}" value="{{ choice_id }}" id="id_question_41_{{ forloop.counter0 }}" {% if form.question_41.value == choice_id|stringformat:"s" %}checked{% endif %}>
+                                                    <label for="id_question_41_{{ forloop.counter0 }}">
+                                                        {{ choice_text }}
+                                                    </label>
+                                                </td>
+                                                {% if forloop.counter|divisibleby:4 %}</tr>{% endif %}
+                                            {% endfor %}
+                                            {% if form.question_41.field.choices|length|divisibleby:4 == False %}</tr>{% endif %}
+                                        </table>
                                     </div>
-                                {% elif question.q_type == 'multiple_choice_multiple' %}
-                                    <div class="checkbox-group">
+                                {% elif question.q_type == 'multiple_choice_single' or question.q_type == 'single_choice_other' %}
+                                    <div class="radio-group">{{ field }}</div>
+                                {% elif question.q_type == 'multiple_choice_multiple' or question.q_type == 'multiple_choice_other' %}
+                                    <div class="checkbox-group">{{ field }}</div>
+                                {% elif question.q_type == 'multi_text' %}
+                                    {% if field.name == "question_"|add:question.q_id|add:"_part1" or field.name == "question_"|add:question.q_id|add:"_part2" or field.name == "question_"|add:question.q_id|add:"_part3" %}
+                                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
                                         {{ field }}
-                                    </div>
+                                    {% endif %}
+                                {% elif question.q_type == 'number_range' %}
+                                    {% if field.name == "question_"|add:question.q_id|add:"_min" or field.name == "question_"|add:question.q_id|add:"_max" %}
+                                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                        {{ field }}
+                                    {% endif %}
                                 {% endif %}
                             </div>
                             {% if field.errors %}
@@ -69,13 +94,25 @@
                     {% endfor %}
                 </div>
 
-                <button type="submit" class="btn btn-primary">İleri</button>
+                <div class="button-group">
+                    {% if request.session.previous_question_id %}
+                    <a href="{% url 'previous_question' %}" class="btn btn-secondary">Geri</a>
+                    {% endif %}
+                    <button type="submit" class="btn btn-primary">İleri</button>
+                </div>
             </form>
-        </div>
-    </div>
+
+            <div class="question-grid">
+                {% for q in all_questions %}
+                    <a href="{% url 'go_to_question' q.q_id %}" class="question-grid-item {% if q.q_id == question.q_id %}current{% elif q.q_id in answered_question_ids %}answered{% endif %}">
+                        {{ forloop.counter }}
+                    </a>
+                {% endfor %}
+            </div>
 
     <!-- Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Custom JavaScript -->
     <script src="{% static 'questions/js/form.js' %}"></script>
+    <script src="{% static 'questions/js/theme.js' %}"></script>
 </body>

@@ -7,9 +7,17 @@ class Question(models.Model):
     QUESTION_TYPES = (
         ("multiple_choice_single", "Multiple Choice Single"),
         ("multiple_choice_multiple", "Multiple Choice Multiple"), 
-        ("open_ended", "Open Ended")
+        ("open_ended", "Open Ended"),
+        ("datetime", "Date/Time Input"),
+        ("single_choice_other", "Single Choice with Other"),
+        ("multiple_choice_other", "Multiple Choice with Other"),
+        ("multi_text", "Multiple Text Fields"),
+        ("number_range", "Number Range"),
+        ("slider", "Slider"),
     )
     q_type = models.CharField(max_length=24, choices=QUESTION_TYPES, default="open_ended")
+    min_value = models.IntegerField(null=True, blank=True)
+    max_value = models.IntegerField(null=True, blank=True)
 
     def __str__(self) -> str:
         return self.text
@@ -45,6 +53,7 @@ class AnalyzableData(models.Model):
     desired_relationship_type = models.CharField(max_length=50, blank=True, null=True)
     libido_score = models.FloatField(null=True, blank=True)
     extroversion_score = models.FloatField(null=True, blank=True)
+    attraction_score = models.FloatField(null=True, blank=True)
 
     def __str__(self) -> str:
         return f"Analyzable Data for {self.session.nickname}"

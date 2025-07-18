@@ -1,185 +1,127 @@
-# Izdivac25 Project Documentation
+# Project Information: Django Questionnaire Application
 
-## Project Overview
+## Project Description
 
-A Django-based matchmaking web application that connects people based on questionnaire responses. Designed for small-scale use with friends, focusing on anonymous participation without traditional user authentication.
+This Django project is a web application designed to create and administer questionnaires. It allows users to answer a series of questions presented in a form format, handles user sessions to collect responses, and provides a basic admin interface to view the submitted data.
 
-## Key Features
+## Key Features Implemented
 
-- Anonymous session-based participation
-- Multi-category questionnaire system
-- Answer analysis for compatibility matching
-- Admin interface for response management
-- Google Forms-inspired UX
+### Core Features
+* **Question Management:**
+    * Questions are stored in a database with attributes like text, section, and question type
+    * Different question types supported:
+        * Open-ended text questions
+        * Multiple-choice questions (single selection)
+        * Multiple-choice questions (multiple selections)
+    * Questions are organized by sections for better structure
 
-## Core Components
+### User Interface
+* **Dynamic Forms:**
+    * Forms dynamically generated based on question type
+    * Bootstrap-styled form elements
+    * Responsive design for mobile compatibility
+* **Progress Tracking:**
+    * Visual progress bar showing completion status
+    * Smooth animations for progress updates
+    * Current question number / total questions display
 
-### Models Architecture
+### User Experience
+* **Session Management:**
+    * User sessions track progress through questionnaire
+    * Nickname and contact info collected once at start
+    * Matching code generation for user identification
+* **Navigation:**
+    * Intuitive "Next" button progression
+    * Section-based navigation
+    * Error handling for form submissions
 
-```mermaid
-classDiagram
-    class UserSession {
-        +CharField session_key
-        +DateTimeField created_at
-        +CharField nickname
-        +CharField contact_info
-        +BooleanField completed
-        +CharField matching_code
-    }
-    
-    class Question {
-        +BigAutoField q_id
-        +CharField text
-        +PositiveIntegerField section
-        +CharField q_type
-    }
-    
-    class Choice {
-        +BigAutoField c_id
-        +ForeignKey Question question
-        +CharField text
-    }
-
-    class Answer {
-        +BigAutoField a_id
-        +ForeignKey UserSession session
-        +ForeignKey Question question
-        +TextField answer_text
-        +ForeignKey Choice selected_choice
-        +ManyToManyField Choice selected_choices
-    }
-    
-    class AnalyzableData {
-        +OneToOneField UserSession session
-        +PositiveIntegerField age_min
-        +PositiveIntegerField age_max
-        +PositiveIntegerField height_min
-        +PositiveIntegerField height_max
-        +CharField zodiac_sign
-        +FloatField romance_score
-        +CharField relationship_status
-        +CharField desired_relationship_type
-        +FloatField libido_score
-        +FloatField extroversion_score
-    }
-    
-    UserSession "1" -- "0..*" Answer
-    UserSession "1" -- "0..1" AnalyzableData
-    Question "1" -- "0..*" Answer
-```
-
-### Questionnaire Structure
-
-- **5 Main Categories** with 3 answer types:
-  1. Single Selection (Radio)
-  2. Multiple Selection (Checkbox)
-  3. Open Text (Textarea)
-
-- Sections include:
-  - Personal Information
-  - Relationship Preferences
-  - Relationship History
-  - Additional Information
-  - Matching Hints
+### Data Management
+* **Response Storage:**
+    * Answers linked to user sessions
+    * Support for different answer types
+    * Database optimization for efficient retrieval
+* **Admin Interface:**
+    * Password-protected admin view
+    * Response viewing by user
+    * Export options (JSON/CSV)
 
 ## Technical Implementation
 
-### Admin Interface
+### Backend (Django)
+* Models:
+    * Question
+    * Answer
+    * Choice
+    * UserSession
+* Views:
+    * submit_answer
+    * start_questionnaire
+    * success
+    * view_all_responses
+* Forms:
+    * AnswerForm with dynamic field generation
 
-```python
-# Key admin configurations:
-class AnswerInline(admin.TabularInline):
-    model = Answer
-    extra = 0
-    fields = ('question', 'text_answer', 'selected_choices') # Added fields to display
-    readonly_fields = ('question', 'text_answer', 'selected_choices')
+### Frontend
+* **CSS:**
+    * Custom styling for form elements
+    * Progress bar animations
+    * Responsive design
+* **JavaScript:**
+    * Form validation
+    * Submit button handling
+    * Character counters
+    * Progress bar updates
 
-class UserSessionAdmin(admin.ModelAdmin):
-    inlines = [AnswerInline]
-    list_display = ('session_key', 'nickname', 'created_at')
-    list_filter = ('created_at',) # Added list_filter
-    search_fields = ('session_key', 'nickname')
-```
+### Database Design
+* Efficient relationships between models
+* Support for multiple question types
+* Session-based user tracking
 
-### Form Handling
+## Current Status
+The application is fully functional with:
+* Smooth question navigation
+* Working progress tracking
+* Proper session management
+* Basic admin interface
 
-- Multi-page form implementation
-- Session persistence through URL parameters
-- JS validation (form.js)
-- CSS styling for responsive design (styles.css)
+## Development Progress
+* ✅ Core questionnaire functionality
+* ✅ User session management
+* ✅ Dynamic form generation
+* ✅ Progress tracking
+* ✅ Basic admin interface
+* ✅ Response storage
+* ✅ UI/UX improvements
 
-### Template Structure
+## Future Enhancements
+1. **Additional Features:**
+   * More question types (rating scales, date inputs)
+   * Advanced validation rules
+   * Rich text editing for open questions
+   * File upload support
 
-- answer_form.html (main questionnaire)
-- success.html (submission confirmation)
-- admin_view_responses.html (custom admin view)
-- no_questions.html (displayed when there are no questions)
+2. **User Experience:**
+   * Question preview
+   * Save progress for later
+   * Theme customization
+   * Multi-language support
 
-## URL Structure
+3. **Admin Features:**
+   * Advanced analytics
+   * Response filtering
+   * Data visualization
+   * Bulk operations
 
-```python
-# Key URL patterns:
-urlpatterns = [
-    path('', views.start_questionnaire, name='start'),
-    path('submit/', views.submit_answer, name='submit_answer'),
-    path('submit/<int:question_id>/', views.submit_answer, name='submit_answer'),
-    path('success/', views.success, name='success'),
-    path('no-questions/', views.no_questions, name='no_questions'),
-    path('view-responses/<str:admin_password>/', views.view_all_responses, name='view_responses'),
-]
-```
+4. **Security:**
+   * Enhanced admin authentication
+   * Rate limiting
+   * Data encryption
+   * GDPR compliance
 
-## Static Assets
-
-- CSS:
-  - Responsive grid layout
-  - Progress indicators
-  - Form styling
-  
-- JavaScript:
-  - Form navigation
-  - Answer validation
-  - Session management
-  - Progress bar functionality
-
-## Business Logic
-
-1. Matching Algorithm Foundation:
-
-```python
-# Example matching logic pseudocode
-# This is just a placeholder, the actual logic is not yet implemented
-def calculate_compatibility(session1, session2):
-    score = 0
-    
-    # Analyze numerical ranges
-    if sessions_share_analyzable_data(session1, session2):
-        score += 30
-        
-    # Match question preferences
-    score += compare_answers(
-        session1.answers.filter(question__is_analyzable=True),
-        session2.answers.filter(question__is_analyzable=True)
-    )
-    
-    return min(score, 100)
-```
-
-## The matching algorithm is not fully implemented yet
-
-## Development Environment
-
-- Python 3.12
-- Django 5.1.6
-- SQLite database
-- Virtualenv isolation
-
-## Future Roadmap
-
-1. Implement matching algorithm thresholds
-2. Add CSV export capability
-3. Create compatibility visualization
-4. Enhance admin filtering
-5. Add question weight system
+5. **Performance:**
+   * Caching implementation
+   * Database optimization
+   * Asset compression
+   * Load balancing preparation
 
 ****
